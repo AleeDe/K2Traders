@@ -22,8 +22,19 @@ const ShopPage = () => {
   const [sortBy, setSortBy] = useState("featured");
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState("grid");
-  const [priceRange, setPriceRange] = useState([0, 5000]);
+  const [priceRange, setPriceRange] = useState([0, 100000]);
   const { products, loading } = useProducts();
+  
+  // Fixed slider bounds
+  const MAX_PRICE = 100000;
+
+  // Clamp current range if out of bounds
+  useEffect(() => {
+    setPriceRange(([min, max]) => [
+      Math.max(0, Math.min(min, MAX_PRICE)),
+      Math.max(0, Math.min(max, MAX_PRICE))
+    ]);
+  }, []);
 
   // Scroll to top on mount
   useEffect(() => {
@@ -42,7 +53,7 @@ const ShopPage = () => {
         Number(product.price || 0) >= priceRange[0] && Number(product.price || 0) <= priceRange[1];
       return matchesCategory && matchesSearch && matchesPrice;
     });
-  }, [selectedCategory, searchTerm, priceRange]);
+  }, [products, selectedCategory, searchTerm, priceRange]);
 
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     switch (sortBy) {
@@ -185,18 +196,40 @@ const ShopPage = () => {
             {/* Price Range */}
             <div className="mt-6 pt-6 border-t border-gray-200">
               <label className="block text-sm font-medium text-gray-700 mb-3">
-                Price Range: ${priceRange[0]} - ${priceRange[1]}
+                Price Range: Rs {priceRange[0]} - Rs {priceRange[1]}
               </label>
-              <input
-                type="range"
-                min="0"
-                max="5000"
-                value={priceRange[1]}
-                onChange={(e) =>
-                  setPriceRange([priceRange[0], parseInt(e.target.value)])
-                }
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <div className="flex justify-between text-xs text-gray-500 mb-1"><span>Min</span><span>Rs {priceRange[0]}</span></div>
+                  <input
+                    aria-label="Minimum price"
+                    type="range"
+                    min={0}
+                    max={MAX_PRICE}
+                    value={priceRange[0]}
+                    onChange={(e) => {
+                      const nextMin = Math.min(Number(e.target.value), priceRange[1]);
+                      setPriceRange([nextMin, priceRange[1]]);
+                    }}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                  />
+                </div>
+                <div>
+                  <div className="flex justify-between text-xs text-gray-500 mb-1"><span>Max</span><span>Rs {priceRange[1]}</span></div>
+                  <input
+                    aria-label="Maximum price"
+                    type="range"
+                    min={0}
+                    max={MAX_PRICE}
+                    value={priceRange[1]}
+                    onChange={(e) => {
+                      const nextMax = Math.max(Number(e.target.value), priceRange[0]);
+                      setPriceRange([priceRange[0], nextMax]);
+                    }}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 

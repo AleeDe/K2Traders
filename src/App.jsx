@@ -12,6 +12,7 @@ import BlogPage from './pages/BlogPage.jsx';
 import BlogDetailPage from './pages/BlogDetailPage.jsx';
 import ContactPage from './pages/ContactPage.jsx';
 import Success from './pages/Success.jsx';
+import TrackOrder from './pages/TrackOrder.jsx';
 import AdminLogin from './pages/AdminLogin.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
 import AdminSignup from './pages/AdminSignup.jsx';
@@ -48,6 +49,7 @@ function App() {
                       <Route path="/blog" element={<BlogPage />} />
                       <Route path="/blog/:id" element={<BlogDetailPage />} />
                       <Route path="/contact" element={<ContactPage />} />
+                      <Route path="/track-order" element={<TrackOrder />} />
                       <Route path="/success" element={<Success />} />
                     </Routes>
                   </main>

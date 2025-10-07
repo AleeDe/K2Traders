@@ -66,15 +66,15 @@ const BrandStory = () => {
 
         {/* Story Content */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center mb-20">
-          <div className="relative order-2 lg:order-1">
-            <div className="absolute -inset-2 bg-gradient-to-br from-green-200/40 via-white/60 to-emerald-100/60 rounded-3xl blur-2xl z-0" />
+          <div className="relative order-2 lg:order-1 overflow-hidden rounded-3xl">
+            <div className="absolute -inset-1 sm:-inset-2 bg-gradient-to-br from-green-200/40 via-white/60 to-emerald-100/60 rounded-3xl blur-2xl z-0" />
             <img
               src={settings?.brand_image}
               alt="Baltistan Mountains"
               className="relative w-full h-96 object-cover rounded-3xl shadow-2xl border-4 border-white/80 z-10"
               loading="lazy"
             />
-            <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg z-20">
+            <div className="absolute bottom-3 right-3 sm:-bottom-6 sm:-right-6 w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg z-20">
               <Mountain className="h-12 w-12 text-white animate-bounce" />
             </div>
           </div>

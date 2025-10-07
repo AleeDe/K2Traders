@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
-import { LogOut, Plus, CreditCard as Edit2, Trash2, Package, BarChart3, Search, RefreshCw, ExternalLink, CheckCircle, Calendar, DollarSign, ClipboardList } from 'lucide-react';
+import { LogOut, Plus, CreditCard as Edit2, Trash2, Package, BarChart3, Search, RefreshCw, ExternalLink, CheckCircle, Calendar, DollarSign, ClipboardList, FileText, Tag } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ProductForm from '../components/admin/ProductForm';
 
@@ -15,6 +15,24 @@ export default function AdminDashboard() {
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [activeTab, setActiveTab] = useState('products'); // products | orders | analytics
+
+  // Blog state
+  const [blogPosts, setBlogPosts] = useState([]);
+  const [blogLoading, setBlogLoading] = useState(false);
+  const [editingPost, setEditingPost] = useState(null);
+  const [blogForm, setBlogForm] = useState({
+    title: '',
+    excerpt: '',
+    content: '',
+    image: '',
+    category: '',
+    author: 'K2 Traders Team',
+    published_at: new Date().toISOString().slice(0,10),
+  });
+
+  // Category create form
+  const [catForm, setCatForm] = useState({ name: '', slug: '', description: '', image: '', icon: '' });
+  const [editingCategory, setEditingCategory] = useState(null);
 
   // Orders state
   const [orders, setOrders] = useState([]);
@@ -43,6 +61,7 @@ export default function AdminDashboard() {
       fetchData();
       fetchOrders();
       fetchAnalytics();
+      fetchBlogPosts();
     }
   }, [isAdmin]);
 
@@ -63,6 +82,24 @@ export default function AdminDashboard() {
       toast.error('Failed to load data');
     } finally {
       setLoadingData(false);
+    }
+  };
+
+  const fetchBlogPosts = async () => {
+    try {
+      setBlogLoading(true);
+      const { data, error } = await supabase
+        .from('blog_posts')
+        .select('*')
+        .order('published_at', { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      setBlogPosts(data || []);
+    } catch (e) {
+      console.error('Error loading blog posts', e);
+      toast.error('Failed to load blog posts');
+    } finally {
+      setBlogLoading(false);
     }
   };
 
@@ -252,12 +289,14 @@ export default function AdminDashboard() {
           </div>
         </div>
       </header>
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Tabs */}
-        <div className="mb-6 flex items-center gap-2">
+  <div className="mb-6 flex flex-wrap items-center gap-2">
           {[
             { key: 'products', label: 'Products', icon: <Package size={16} /> },
             { key: 'orders', label: 'Orders', icon: <ClipboardList size={16} /> },
+            { key: 'blog', label: 'Blog', icon: <FileText size={16} /> },
+            { key: 'categories', label: 'Categories', icon: <Tag size={16} /> },
             { key: 'analytics', label: 'Analytics', icon: <BarChart3 size={16} /> },
           ].map(t => (
             <button key={t.key} onClick={() => setActiveTab(t.key)}
@@ -266,7 +305,7 @@ export default function AdminDashboard() {
               {t.label}
             </button>
           ))}
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex flex-wrap items-center gap-2">
             {activeTab === 'products' && (
               <button onClick={handleAddProduct} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow">
                 <Plus size={16} /> Add Product
@@ -291,28 +330,28 @@ export default function AdminDashboard() {
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Product</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Category</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Price</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Stock</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Featured</th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
+                    <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Product</th>
+                    <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Category</th>
+                    <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Price</th>
+                    <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Stock</th>
+                    <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Featured</th>
+                    <th className="px-4 sm:px-6 py-3 sm:py-4 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
                   {products.map((product) => (
                     <tr key={product.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4">
+                      <td className="px-4 sm:px-6 py-3 sm:py-4">
                         <div className="flex items-center gap-3">
-                          <img src={product.image} alt={product.name} className="w-12 h-12 object-cover rounded-lg" />
+                          <img src={product.image} alt={product.name} className="w-10 h-10 sm:w-12 sm:h-12 object-cover rounded-lg" />
                           <div>
                             <div className="font-medium text-slate-900">{product.name}</div>
                             <div className="text-sm text-slate-500">ID: {product.id.slice(0, 8)}...</div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-slate-600">{product.categories?.name || 'N/A'}</td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 sm:px-6 py-3 sm:py-4 text-sm text-slate-600">{product.categories?.name || 'N/A'}</td>
+                      <td className="px-4 sm:px-6 py-3 sm:py-4">
                         <div className="text-sm">
                           <div className="font-semibold text-slate-900">Rs. {product.price}</div>
                           {product.original_price > product.price && (
@@ -320,13 +359,13 @@ export default function AdminDashboard() {
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 sm:px-6 py-3 sm:py-4">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${product.in_stock ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{product.in_stock ? 'In Stock' : 'Out of Stock'}</span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 sm:px-6 py-3 sm:py-4">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${product.featured ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-600'}`}>{product.featured ? 'Yes' : 'No'}</span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 sm:px-6 py-3 sm:py-4">
                         <div className="flex justify-end gap-2">
                           <button onClick={() => handleEditProduct(product)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit"><Edit2 size={18} /></button>
                           <button onClick={() => handleDeleteProduct(product.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete"><Trash2 size={18} /></button>
@@ -371,33 +410,33 @@ export default function AdminDashboard() {
                 <table className="w-full">
                   <thead className="bg-slate-50 border-b border-slate-200">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Order</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Customer</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Date</th>
-                      <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Total</th>
-                      <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
+                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Order</th>
+                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Customer</th>
+                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Date</th>
+                      <th className="px-4 sm:px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Total</th>
+                      <th className="px-4 sm:px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</th>
+                      <th className="px-4 sm:px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
                     {ordersLoading && (
-                      <tr><td colSpan={6} className="px-6 py-6 text-center text-slate-500">Loading...</td></tr>
+                      <tr><td colSpan={6} className="px-4 sm:px-6 py-6 text-center text-slate-500">Loading...</td></tr>
                     )}
                     {!ordersLoading && filteredOrders.map((o) => (
                       <tr key={o.id} className="hover:bg-slate-50">
-                        <td className="px-6 py-3 font-mono text-sm">{o.id.slice(0,8)}...</td>
-                        <td className="px-6 py-3 text-sm">
+                        <td className="px-4 sm:px-6 py-3 font-mono text-sm">{o.id.slice(0,8)}...</td>
+                        <td className="px-4 sm:px-6 py-3 text-sm">
                           <div className="font-medium">{o.customer_name || 'Customer'}</div>
                           <div className="text-slate-500">{o.email || '-'}</div>
                         </td>
-                        <td className="px-6 py-3 text-sm text-slate-600">{new Date(o.created_at).toLocaleString()}</td>
-                        <td className="px-6 py-3 text-right text-sm font-semibold">Rs. {Number(o.subtotal || 0).toFixed(0)}</td>
-                        <td className="px-6 py-3 text-right">
+                        <td className="px-4 sm:px-6 py-3 text-sm text-slate-600">{new Date(o.created_at).toLocaleString()}</td>
+                        <td className="px-4 sm:px-6 py-3 text-right text-sm font-semibold">Rs. {Number(o.subtotal || 0).toFixed(0)}</td>
+                        <td className="px-4 sm:px-6 py-3 text-right">
                           <select value={o.status || ''} onChange={(e) => updateOrderStatus(o.id, e.target.value)} className="px-2 py-1 text-sm rounded border border-slate-200 bg-white">
                             {['paid','processing','shipped','cancelled','refunded'].map(s => <option key={s} value={s}>{s}</option>)}
                           </select>
                         </td>
-                        <td className="px-6 py-3">
+                        <td className="px-4 sm:px-6 py-3">
                           <div className="flex justify-end gap-2">
                             {o.stripe_receipt_url && (
                               <a href={o.stripe_receipt_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline">
@@ -409,7 +448,282 @@ export default function AdminDashboard() {
                       </tr>
                     ))}
                     {!ordersLoading && filteredOrders.length === 0 && (
-                      <tr><td colSpan={6} className="px-6 py-10 text-center text-slate-500">No orders found.</td></tr>
+                      <tr><td colSpan={6} className="px-4 sm:px-6 py-10 text-center text-slate-500">No orders found.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'blog' && (
+          <div className="space-y-6">
+            {/* Create blog post */}
+            <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold">Add Blog Post</h3>
+                <button onClick={fetchBlogPosts} className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50">
+                  <RefreshCw size={16} /> Refresh
+                </button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm text-slate-600">Title</label>
+                  <input value={blogForm.title} onChange={(e)=>setBlogForm(f=>({...f,title:e.target.value}))} className="mt-1 w-full px-3 py-2 rounded border border-slate-200" placeholder="Post title" />
+                </div>
+                <div>
+                  <label className="text-sm text-slate-600">Category</label>
+                  <input value={blogForm.category} onChange={(e)=>setBlogForm(f=>({...f,category:e.target.value}))} className="mt-1 w-full px-3 py-2 rounded border border-slate-200" placeholder="e.g. news" />
+                </div>
+                <div>
+                  <label className="text-sm text-slate-600">Image URL</label>
+                  <input value={blogForm.image} onChange={(e)=>setBlogForm(f=>({...f,image:e.target.value}))} className="mt-1 w-full px-3 py-2 rounded border border-slate-200" placeholder="https://..." />
+                </div>
+                <div>
+                  <label className="text-sm text-slate-600">Published date</label>
+                  <input type="date" value={blogForm.published_at} onChange={(e)=>setBlogForm(f=>({...f,published_at:e.target.value}))} className="mt-1 w-full px-3 py-2 rounded border border-slate-200" />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-sm text-slate-600">Excerpt</label>
+                  <textarea value={blogForm.excerpt} onChange={(e)=>setBlogForm(f=>({...f,excerpt:e.target.value}))} rows={2} className="mt-1 w-full px-3 py-2 rounded border border-slate-200" placeholder="Short summary" />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-sm text-slate-600">Content</label>
+                  <textarea value={blogForm.content} onChange={(e)=>setBlogForm(f=>({...f,content:e.target.value}))} rows={6} className="mt-1 w-full px-3 py-2 rounded border border-slate-200" placeholder="Full content (markdown or text)" />
+                </div>
+              </div>
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={async()=>{
+                    try{
+                      if(!blogForm.title.trim()) { toast.error('Title is required'); return; }
+                      const payload = { ...blogForm, author: blogForm.author || 'K2 Traders Team' };
+                      const { error } = await supabase.from('blog_posts').insert(payload);
+                      if (error) throw error;
+                      toast.success('Blog post added');
+                      setBlogForm({ title:'', excerpt:'', content:'', image:'', category:'', author:'K2 Traders Team', published_at: new Date().toISOString().slice(0,10) });
+                      fetchBlogPosts();
+                    }catch(e){
+                      console.error(e);
+                      toast.error('Failed to add post');
+                    }
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-900 text-white hover:bg-slate-800"
+                >
+                  <Plus size={16}/> Add Post
+                </button>
+              </div>
+            </div>
+
+            {/* Posts list */}
+            <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Title</th>
+                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Category</th>
+                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Published</th>
+                      <th className="px-4 sm:px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {blogLoading && (
+                      <tr><td colSpan={4} className="px-4 sm:px-6 py-6 text-center text-slate-500">Loading...</td></tr>
+                    )}
+                    {!blogLoading && blogPosts.map(bp => (
+                      <tr key={bp.id} className="hover:bg-slate-50">
+                        <td className="px-4 sm:px-6 py-3">
+                          {editingPost?.id === bp.id ? (
+                            <input value={editingPost.title} onChange={(e)=>setEditingPost(p=>({...p,title:e.target.value}))} className="w-full px-2 py-1 rounded border border-slate-200" />
+                          ) : (
+                            bp.title
+                          )}
+                        </td>
+                        <td className="px-4 sm:px-6 py-3 text-sm text-slate-600">
+                          {editingPost?.id === bp.id ? (
+                            <input value={editingPost.category || ''} onChange={(e)=>setEditingPost(p=>({...p,category:e.target.value}))} className="w-full px-2 py-1 rounded border border-slate-200" />
+                          ) : (
+                            bp.category || '-'
+                          )}
+                        </td>
+                        <td className="px-4 sm:px-6 py-3 text-sm text-slate-600">
+                          {editingPost?.id === bp.id ? (
+                            <input type="date" value={editingPost.published_at?.slice(0,10) || ''} onChange={(e)=>setEditingPost(p=>({...p,published_at:e.target.value}))} className="w-full px-2 py-1 rounded border border-slate-200" />
+                          ) : (
+                            bp.published_at
+                          )}
+                        </td>
+                        <td className="px-4 sm:px-6 py-3">
+                          <div className="flex justify-end gap-2">
+                            {editingPost?.id === bp.id ? (
+                              <>
+                                <button onClick={async()=>{
+                                  try{
+                                    const payload = { ...editingPost };
+                                    delete payload.id;
+                                    const { error } = await supabase.from('blog_posts').update(payload).eq('id', bp.id);
+                                    if (error) throw error;
+                                    toast.success('Post updated');
+                                    setEditingPost(null);
+                                    fetchBlogPosts();
+                                  } catch(e){ toast.error('Failed to update'); }
+                                }} className="px-3 py-1 text-sm rounded bg-emerald-600 text-white">Save</button>
+                                <button onClick={()=>setEditingPost(null)} className="px-3 py-1 text-sm rounded border">Cancel</button>
+                              </>
+                            ) : (
+                              <>
+                                <button onClick={()=>setEditingPost({ id: bp.id, title: bp.title || '', category: bp.category || '', published_at: bp.published_at || '' })} className="px-3 py-1 text-sm rounded border">Edit</button>
+                                <button onClick={async()=>{
+                                  if(!confirm('Delete this post?')) return;
+                                  try{
+                                    const { error } = await supabase.from('blog_posts').delete().eq('id', bp.id);
+                                    if (error) throw error;
+                                    toast.success('Post deleted');
+                                    fetchBlogPosts();
+                                  }catch(e){ toast.error('Failed to delete'); }
+                                }} className="px-3 py-1 text-sm rounded bg-red-600 text-white">Delete</button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {!blogLoading && blogPosts.length === 0 && (
+                      <tr><td colSpan={4} className="px-4 sm:px-6 py-8 text-center text-slate-500">No blog posts yet.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'categories' && (
+          <div className="space-y-6">
+            {/* Create category */}
+            <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6">
+              <h3 className="font-semibold mb-4">Add Category</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm text-slate-600">Name</label>
+                  <input value={catForm.name} onChange={(e)=>{
+                    const name = e.target.value;
+                    const slug = name
+                      .toLowerCase()
+                      .replace(/[^a-z0-9]+/g,'-')
+                      .replace(/(^-|-$)/g,'');
+                    setCatForm(f=>({...f,name, slug}));
+                  }} className="mt-1 w-full px-3 py-2 rounded border border-slate-200" placeholder="e.g. dry fruits" />
+                </div>
+                <div>
+                  <label className="text-sm text-slate-600">Slug</label>
+                  <input value={catForm.slug} onChange={(e)=>setCatForm(f=>({...f,slug:e.target.value}))} className="mt-1 w-full px-3 py-2 rounded border border-slate-200" placeholder="dry-fruits" />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-sm text-slate-600">Description</label>
+                  <textarea value={catForm.description} onChange={(e)=>setCatForm(f=>({...f,description:e.target.value}))} rows={3} className="mt-1 w-full px-3 py-2 rounded border border-slate-200" placeholder="Optional description" />
+                </div>
+                <div>
+                  <label className="text-sm text-slate-600">Image URL</label>
+                  <input value={catForm.image} onChange={(e)=>setCatForm(f=>({...f,image:e.target.value}))} className="mt-1 w-full px-3 py-2 rounded border border-slate-200" placeholder="https://..." />
+                </div>
+                <div>
+                  <label className="text-sm text-slate-600">Icon (emoji)</label>
+                  <input value={catForm.icon} onChange={(e)=>setCatForm(f=>({...f,icon:e.target.value}))} className="mt-1 w-full px-3 py-2 rounded border border-slate-200" placeholder="🍯" />
+                </div>
+              </div>
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={async()=>{
+                    try{
+                      if(!catForm.name.trim() || !catForm.slug.trim()) { toast.error('Name and slug are required'); return; }
+                      const payload = { name: catForm.name.trim(), slug: catForm.slug.trim(), description: catForm.description || '', image: catForm.image || '', icon: catForm.icon || '' };
+                      const { error } = await supabase.from('categories').insert(payload);
+                      if (error) throw error;
+                      toast.success('Category added');
+                      setCatForm({ name:'', slug:'', description:'', image:'', icon:'' });
+                      fetchData();
+                    }catch(e){
+                      console.error(e);
+                      toast.error('Failed to add category');
+                    }
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-900 text-white hover:bg-slate-800"
+                >
+                  <Plus size={16}/> Add Category
+                </button>
+              </div>
+            </div>
+
+            {/* Categories list */}
+            <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Name</th>
+                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Slug</th>
+                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Products</th>
+                      <th className="px-4 sm:px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {categories.map(c => (
+                      <tr key={c.id} className="hover:bg-slate-50">
+                        <td className="px-4 sm:px-6 py-3">
+                          {editingCategory?.id === c.id ? (
+                            <input value={editingCategory.name} onChange={(e)=>setEditingCategory(v=>({...v,name:e.target.value}))} className="w-full px-2 py-1 rounded border border-slate-200" />
+                          ) : (
+                            c.name
+                          )}
+                        </td>
+                        <td className="px-4 sm:px-6 py-3 text-sm text-slate-600">
+                          {editingCategory?.id === c.id ? (
+                            <input value={editingCategory.slug} onChange={(e)=>setEditingCategory(v=>({...v,slug:e.target.value}))} className="w-full px-2 py-1 rounded border border-slate-200" />
+                          ) : (
+                            c.slug
+                          )}
+                        </td>
+                        <td className="px-4 sm:px-6 py-3 text-sm text-slate-600">{/* Could compute count via join if needed */}-</td>
+                        <td className="px-4 sm:px-6 py-3">
+                          <div className="flex justify-end gap-2">
+                            {editingCategory?.id === c.id ? (
+                              <>
+                                <button onClick={async()=>{
+                                  try{
+                                    const payload = { name: editingCategory.name?.trim() || '', slug: editingCategory.slug?.trim() || '' };
+                                    if(!payload.name || !payload.slug){ toast.error('Name and slug are required'); return; }
+                                    const { error } = await supabase.from('categories').update(payload).eq('id', c.id);
+                                    if (error) throw error;
+                                    toast.success('Category updated');
+                                    setEditingCategory(null);
+                                    fetchData();
+                                  }catch(e){ toast.error('Failed to update'); }
+                                }} className="px-3 py-1 text-sm rounded bg-emerald-600 text-white">Save</button>
+                                <button onClick={()=>setEditingCategory(null)} className="px-3 py-1 text-sm rounded border">Cancel</button>
+                              </>
+                            ) : (
+                              <>
+                                <button onClick={()=>setEditingCategory({ id: c.id, name: c.name || '', slug: c.slug || '' })} className="px-3 py-1 text-sm rounded border">Edit</button>
+                                <button onClick={async()=>{
+                                  if(!confirm('Delete this category? Products may reference this category.')) return;
+                                  try{
+                                    const { error } = await supabase.from('categories').delete().eq('id', c.id);
+                                    if (error) throw error;
+                                    toast.success('Category deleted');
+                                    fetchData();
+                                  }catch(e){ toast.error('Failed to delete'); }
+                                }} className="px-3 py-1 text-sm rounded bg-red-600 text-white">Delete</button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {categories.length === 0 && (
+                      <tr><td colSpan={4} className="px-4 sm:px-6 py-8 text-center text-slate-500">No categories yet.</td></tr>
                     )}
                   </tbody>
                 </table>

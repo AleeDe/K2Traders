@@ -28,7 +28,8 @@ const Header = () => {
     { name: 'About Us', href: '/about' },
     { name: 'Brand Story', href: '/brand-story' },
     { name: 'Blog', href: '/blog' },
-    { name: 'Contact', href: '/contact' }
+    { name: 'Contact', href: '/contact' },
+    { name: 'Track Order', href: '/track-order' }
   ];
 
   const isActive = (href) => {

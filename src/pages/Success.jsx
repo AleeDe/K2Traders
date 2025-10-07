@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { useCart } from '../context/CartContext.jsx';
 
 function formatCurrencyPKR(n) {
   const num = Number(n || 0);
@@ -14,6 +15,8 @@ export default function Success() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { clearCart } = useCart();
+  const [cartCleared, setCartCleared] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -63,6 +66,23 @@ export default function Success() {
     loadWithRetry();
     return () => { cancelled = true; };
   }, [orderId]);
+
+  // Clear cart from context/localStorage once a valid order is loaded
+  useEffect(() => {
+    if (order && !cartCleared) {
+      try {
+        clearCart?.();
+        // Extra safety to remove any stale persisted cart state
+        localStorage.removeItem('cart_v1');
+        // Remove any legacy local draft orders if present
+        localStorage.removeItem('orders');
+      } catch {
+        // ignore storage errors
+      } finally {
+        setCartCleared(true);
+      }
+    }
+  }, [order, cartCleared, clearCart]);
 
   const itemTotal = useMemo(() => items.reduce((sum, it) => sum + Number(it.total || 0), 0), [items]);
   const createdAt = useMemo(() => (order?.created_at ? new Date(order.created_at) : null), [order]);
@@ -136,9 +156,10 @@ export default function Success() {
             </div>
           </header>
 
-          <div className="px-6 py-5">
+          <div className="px-4 sm:px-6 py-5">
             <div className="overflow-hidden rounded-xl border">
-              <table className="min-w-full divide-y divide-gray-200">
+              {/* Desktop/tablet table */}
+              <table className="hidden sm:table min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Item</th>
@@ -169,29 +190,59 @@ export default function Success() {
                   </tr>
                 </tfoot>
               </table>
+              {/* Mobile stacked list */}
+              <div className="sm:hidden">
+                {items.length === 0 ? (
+                  <div className="px-4 py-6 text-center text-gray-500">No items found for this order.</div>
+                ) : (
+                  <ul className="divide-y divide-gray-100 bg-white">
+                    {items.map((it, idx) => (
+                      <li key={idx} className="p-4">
+                        <div className="font-medium text-slate-900">{it.name}</div>
+                        <div className="mt-1 flex justify-between text-sm text-gray-600">
+                          <span>Price</span>
+                          <span>{formatCurrencyPKR(it.price)}</span>
+                        </div>
+                        <div className="mt-1 flex justify-between text-sm text-gray-600">
+                          <span>Qty</span>
+                          <span>{it.quantity}</span>
+                        </div>
+                        <div className="mt-2 flex justify-between text-sm font-semibold">
+                          <span>Total</span>
+                          <span>{formatCurrencyPKR(it.total)}</span>
+                        </div>
+                      </li>
+                    ))}
+                    <li className="p-4 bg-gray-50 flex justify-between text-sm font-semibold">
+                      <span>Subtotal</span>
+                      <span>{formatCurrencyPKR(itemTotal || order.subtotal)}</span>
+                    </li>
+                  </ul>
+                )}
+              </div>
             </div>
 
-            <div className="mt-5 flex flex-wrap items-center gap-3">
+            <div className="mt-5 grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-3">
               {order.stripe_receipt_url && (
                 <a
                   href={order.stripe_receipt_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-700"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-3 text-white hover:bg-emerald-700 w-full sm:w-auto"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16l4-2 4 2 4-2 4 2V8z"/></svg>
                   Download Stripe Receipt
                 </a>
               )}
-              <button onClick={printInvoice} className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 hover:bg-gray-50">
+              <button onClick={printInvoice} className="inline-flex items-center justify-center gap-2 rounded-lg border px-4 py-3 hover:bg-gray-50 w-full sm:w-auto">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
                 Print invoice
               </button>
-              <button onClick={copyOrderId} className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 hover:bg-gray-50">
+              <button onClick={copyOrderId} className="inline-flex items-center justify-center gap-2 rounded-lg border px-4 py-3 hover:bg-gray-50 w-full sm:w-auto">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                 Copy order ID
               </button>
-              <Link to="/shop" className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 hover:bg-gray-50">Continue shopping</Link>
+              <Link to="/shop" className="inline-flex items-center justify-center gap-2 rounded-lg border px-4 py-3 hover:bg-gray-50 w-full sm:w-auto">Continue shopping</Link>
             </div>
           </div>
         </section>

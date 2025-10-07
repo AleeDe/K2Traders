@@ -38,7 +38,7 @@ const BlogPage = () => {
         selectedCategory === "all" || post.category === selectedCategory;
       return matchesSearch && matchesCategory;
     });
-  }, [searchTerm, selectedCategory]);
+  }, [blogPosts, searchTerm, selectedCategory]);
 
   if (loading) {
     // 🔹 Skeleton Loader
