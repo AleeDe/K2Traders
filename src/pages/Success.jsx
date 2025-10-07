@@ -16,35 +16,52 @@ export default function Success() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    async function load() {
+    let cancelled = false;
+    async function fetchOnce() {
+      const { data: orderData, error: oErr } = await supabase
+        .from('orders')
+        .select('id, customer_name, email, subtotal, status, created_at, stripe_receipt_url')
+        .eq('id', orderId)
+        .maybeSingle();
+      if (oErr) throw oErr;
+      if (!orderData) return { order: null };
+      const { data: itemsData, error: iErr } = await supabase
+        .from('order_items')
+        .select('name, price, quantity, total')
+        .eq('order_id', orderId)
+        .order('name');
+      if (iErr) throw iErr;
+      return { order: orderData, items: itemsData || [] };
+    }
+
+    async function loadWithRetry() {
       try {
         if (!orderId) {
           setError('Missing order id in URL.');
           setLoading(false);
           return;
         }
-        const { data: orderData, error: oErr } = await supabase
-          .from('orders')
-          .select('id, customer_name, email, subtotal, status, created_at, stripe_receipt_url')
-          .eq('id', orderId)
-          .maybeSingle();
-        if (oErr) throw oErr;
-        setOrder(orderData);
-
-        const { data: itemsData, error: iErr } = await supabase
-          .from('order_items')
-          .select('name, price, quantity, total')
-          .eq('order_id', orderId)
-          .order('name');
-        if (iErr) throw iErr;
-        setItems(itemsData || []);
+        // Try up to 5 times with backoff in case webhook is not finished yet
+        for (let attempt = 0; attempt < 5; attempt++) {
+          const res = await fetchOnce();
+          if (cancelled) return;
+          if (res.order) {
+            setOrder(res.order);
+            setItems(res.items || []);
+            setLoading(false);
+            return;
+          }
+          await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
+        }
+        setError('We could not find your order yet. Please refresh this page in a few seconds.');
       } catch (e) {
-        setError(e.message || 'Failed to load order.');
+        if (!cancelled) setError(e.message || 'Failed to load order.');
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
-    load();
+    loadWithRetry();
+    return () => { cancelled = true; };
   }, [orderId]);
 
   const itemTotal = useMemo(() => items.reduce((sum, it) => sum + Number(it.total || 0), 0), [items]);
