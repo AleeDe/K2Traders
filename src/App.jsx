@@ -20,6 +20,7 @@ import AdminResetPassword from './pages/AdminResetPassword.jsx';
 import { CartProvider } from './context/CartContext.jsx';
 import { WishlistProvider } from './context/WishContext.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
+import RedirectOnOrderId from './components/commoncomponents/RedirectOnOrderId.jsx';
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
       <CartProvider>
         <WishlistProvider>
           <Router>
+            <RedirectOnOrderId />
             <Routes>
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/admin/signup" element={<AdminSignup />} />

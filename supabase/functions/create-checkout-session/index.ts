@@ -97,7 +97,8 @@ serve(async (req) => {
       payment_intent_data: {
         metadata: { order_id: orderId },
       },
-  success_url: buildUrl(BASE_URL, '/success', { order_id: orderId }),
+  // Use root with query param to avoid server-side SPA rewrite requirements
+  success_url: buildUrl(BASE_URL, '/', { order_id: orderId }),
   cancel_url: buildUrl(BASE_URL, '/shop', {}),
       metadata: {
         order_id: orderId,
