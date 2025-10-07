@@ -95,7 +95,8 @@ export default function Success() {
         }
       `}</style>
 
-      <div className="container mx-auto px-4 py-10">
+      {/* Top padding to account for sticky site header so content doesn't hide under it */}
+  <div className="container mx-auto px-4 pt-28 md:pt-32 pb-12">
         {/* Header */}
         <div className="mx-auto max-w-4xl">
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 p-[1px] shadow-lg">
@@ -122,7 +123,7 @@ export default function Success() {
         </div>
 
         {/* Invoice */}
-        <section id="invoice" className="mx-auto mt-6 max-w-4xl rounded-2xl bg-white shadow-lg ring-1 ring-black/5">
+  <section id="invoice" className="mx-auto mt-6 max-w-4xl rounded-2xl bg-white shadow-lg ring-1 ring-black/5">
           <header className="flex flex-wrap items-start gap-4 border-b px-6 py-5">
             <div>
               <h2 className="text-lg font-semibold">Invoice</h2>
